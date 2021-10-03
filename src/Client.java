@@ -28,7 +28,7 @@ public class Client extends Thread{
      * @param
      */
      Client(String operation)
-     { 
+     { // start sending
        if (operation.equals("sending"))
        { 
            System.out.println("\n Initializing client sending application ...");
@@ -138,7 +138,7 @@ public class Client extends Thread{
         }
         setNumberOfTransactions(i);		/* Record the number of transactions processed */
         
-        System.out.println("\n DEBUG : Client.readTransactions() - " + getNumberOfTransactions() + " transactions processed");
+        //System.out.println("\n DEBUG : Client.readTransactions() - " + getNumberOfTransactions() + " transactions processed");
         
         inputStream.close( );
 
@@ -156,11 +156,13 @@ public class Client extends Thread{
          
          while (i < getNumberOfTransactions())
          {  
-            // while( objNetwork.getInBufferStatus().equals("full") );     /* Alternatively, busy-wait until the network input buffer is available */
+            while( objNetwork.getInBufferStatus().equals("full") ){
+                Thread.yield();
+            };     /* Alternatively, busy-wait until the network input buffer is available */
                                              	
             transaction[i].setTransactionStatus("sent");   /* Set current transaction status */
            
-            System.out.println("\n DEBUG : Client.sendTransactions() - sending transaction on account " + transaction[i].getAccountNumber());
+            //System.out.println("\n DEBUG : Client.sendTransactions() - sending transaction on account " + transaction[i].getAccountNumber());
             
             objNetwork.send(transaction[i]);                            /* Transmit current transaction */
             i++;
@@ -180,11 +182,13 @@ public class Client extends Thread{
          
          while (i < getNumberOfTransactions())
          {     
-        	 // while( objNetwork.getOutBufferStatus().equals("empty"));  	/* Alternatively, busy-wait until the network output buffer is available */
+        	while( objNetwork.getOutBufferStatus().equals("empty")){
+                Thread.yield();
+            };  	/* Alternatively, busy-wait until the network output buffer is available */
                                                                         	
             objNetwork.receive(transact);                               	/* Receive updated transaction from the network buffer */
             
-            System.out.println("\n DEBUG : Client.receiveTransactions() - receiving updated transaction on account " + transact.getAccountNumber());
+            //System.out.println("\n DEBUG : Client.receiveTransactions() - receiving updated transaction on account " + transact.getAccountNumber());
             
             System.out.println(transact);                               	/* Display updated transaction */    
             i++;
@@ -203,7 +207,7 @@ public class Client extends Thread{
      }
     
     /** Code for the run method
-     * 
+     *  
      * @return 
      * @param
      */
@@ -211,7 +215,22 @@ public class Client extends Thread{
     {   
     	Transactions transact = new Transactions();
     	long sendClientStartTime, sendClientEndTime, receiveClientStartTime, receiveClientEndTime;
-    
-	/* Implement the code for the run method */
+        /* Implement the code for the run method */
+        if(getClientOperation().equals("sending")){
+            sendClientStartTime = System.currentTimeMillis();
+            sendTransactions();
+            sendClientEndTime = System.currentTimeMillis();
+            System.out.println("Terminating client sending thread - Runing time: "+ (sendClientEndTime - sendClientStartTime) + "milliseconds");
+        }
+        else {
+            receiveClientStartTime = System.currentTimeMillis();
+
+            receiveTransactions(transact);
+            
+            receiveClientEndTime = System.currentTimeMillis();
+            objNetwork.disconnect(objNetwork.getClientIP());
+            System.out.println("Terminating client receiving thread - Runing time: "+ (receiveClientEndTime - receiveClientStartTime) + "milliseconds");
+        }
+	
     }
 }
